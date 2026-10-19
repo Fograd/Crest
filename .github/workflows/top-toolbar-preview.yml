@@ -31,17 +31,22 @@ jobs:
         run: |
           set -euo pipefail
           source_sha="$(git rev-parse HEAD)"
-          restore_source() {
-            status=$?
-            trap - EXIT
-            git reset --mixed "$source_sha"
-            exit "$status"
-          }
-          trap restore_source EXIT
-          # Recreate the final commit's staging state only in this runner.
-          # A soft reset leaves its source files and index unchanged.
-          git reset --soft "$source_sha^"
-          Scripts/check-version.sh --fix-commit
+          if git diff --quiet "$source_sha^" "$source_sha" -- . \
+              ':(exclude).github/workflows/**' ':(exclude).github/actions/**'; then
+            Scripts/check-version.sh --static
+          else
+            restore_source() {
+              status=$?
+              trap - EXIT
+              git reset --mixed "$source_sha"
+              exit "$status"
+            }
+            trap restore_source EXIT
+            # Recreate the final commit's staging state only in this runner.
+            # A soft reset leaves its source files and index unchanged.
+            git reset --soft "$source_sha^"
+            Scripts/check-version.sh --fix-commit
+          fi
 
       - uses: ./.github/actions/prepare-apple-build
 
@@ -99,15 +104,85 @@ jobs:
           retention-days: 7
           compression-level: 0
 
-      - name: Build Chromium UI
+      - name: Build isolated Chromium UI
         run: |
           xcodebuild build \
             -project Crest.xcodeproj \
-            -scheme CrestChromiumUIProduct \
+            -scheme CrestChromiumUI \
             -configuration Release \
             -destination 'generic/platform=macOS' \
             -derivedDataPath "$RUNNER_TEMP/crest-toolbar-preview" \
             CODE_SIGNING_ALLOWED=NO
+
+      - name: Archive Chromium review signing components
+        run: |
+          set -euo pipefail
+          products="$RUNNER_TEMP/crest-toolbar-preview/Build/Products/Release"
+          component_root="$RUNNER_TEMP/crest-chromium-review-components"
+          mkdir -p "$component_root/Products"
+          for product in CrestChromiumUI.framework Sparkle.framework CrestDockTilePlugin.docktileplugin crest-browser; do
+            test -e "$products/$product"
+            ditto "$products/$product" "$component_root/Products/$product"
+          done
+          ditto "$products/CrestCore/CrestCore.Native.dylib" "$component_root/Products/CrestCore.Native.dylib"
+          test -f "$component_root/Products/CrestChromiumUI.framework/Resources/Crest.icns"
+          test ! -e "$component_root/Products/CrestChromiumUI.framework/Resources/Crest-Native-Host"
+          REVIEW_COMPONENT_ROOT="$component_root" python3 - <<'PYTHON'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import plistlib
+          import subprocess
+
+          root = Path(os.environ["REVIEW_COMPONENT_ROOT"])
+          products = root / "Products"
+          ui = products / "CrestChromiumUI.framework"
+          with (ui / "Resources/Info.plist").open("rb") as stream:
+              info = plistlib.load(stream)
+          executable = ui / info["CFBundleExecutable"]
+          symbols = {line.split()[-1] for line in subprocess.check_output(["nm", "-gU", str(executable)], text=True).splitlines() if line.split()}
+          required_symbols = {"_crest_native_host_run", "_crest_chromium_ui_start"}
+          if not required_symbols.issubset(symbols):
+              raise SystemExit("The review framework is missing its native host entry points.")
+          binaries = [executable, products / "CrestCore.Native.dylib", products / "crest-browser"]
+          for binary in binaries:
+              if subprocess.check_output(["lipo", "-archs", str(binary)], text=True).strip() != "arm64":
+                  raise SystemExit(f"Expected an arm64 component: {binary.name}")
+          engine = {
+              field: subprocess.check_output(["python3", "Scripts/control-plane/chromium_engine.py", field], text=True).strip()
+              for field in ("key", "tag", "asset")
+          }
+          manifest = {
+              "source_sha": os.environ["PREVIEW_SOURCE_SHA"],
+              "scheme": "CrestChromiumUI",
+              "configuration": "Release",
+              "composition": "isolated Chromium review",
+              "version": info["CFBundleShortVersionString"],
+              "build": info["CFBundleVersion"],
+              "engine": engine,
+              "binary_sha256": {
+                  str(binary.relative_to(root)): hashlib.sha256(binary.read_bytes()).hexdigest()
+                  for binary in binaries
+              },
+          }
+          (root / "build-manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+          PYTHON
+          mkdir -p "$RUNNER_TEMP/crest-chromium-components-artifact"
+          ditto -c -k --sequesterRsrc --keepParent \
+            "$component_root" \
+            "$RUNNER_TEMP/crest-chromium-components-artifact/Crest-Chromium-Review-Components-$PREVIEW_SOURCE_SHA.zip"
+
+      # These unsigned inputs contain no signing keys. Final signing uses the
+      # person's local Keychain after every workflow gate has passed.
+      - name: Upload Chromium review signing components
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: crest-chromium-review-components-${{ env.PREVIEW_SOURCE_SHA }}
+          path: ${{ runner.temp }}/crest-chromium-components-artifact/*.zip
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
 
       - name: Test isolated chrome preference persistence
         env:
@@ -130,3 +205,5 @@ jobs:
         run: |
           find "$RUNNER_TEMP/crest-toolbar-preview" -depth -delete 2>/dev/null || true
           find "$RUNNER_TEMP/crest-toolbar-artifact" -depth -delete 2>/dev/null || true
+          find "$RUNNER_TEMP/crest-chromium-review-components" -depth -delete 2>/dev/null || true
+          find "$RUNNER_TEMP/crest-chromium-components-artifact" -depth -delete 2>/dev/null || true
