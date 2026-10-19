@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SpaceSidebarContent: View {
     @Environment(BrowserSidebarInteractionState.self) private var sidebarInteraction
+    @Environment(\.browserChromeAppearance) private var appearance
     let space: SpaceModel
     let browser: BrowserStore
     let pages: BrowserPagePool
@@ -25,7 +26,7 @@ struct SpaceSidebarContent: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if utilitySurface == nil, !browser.isDeleting(space.id) {
+            if !appearance.toolbarAtTop, utilitySurface == nil, !browser.isDeleting(space.id) {
                 BrowserEngineSidebarAccessory(space: space, browser: browser, pages: pages)
                     // Above the pinned tabs, so the selected pin's glow slides under it.
                     .zIndex(1)

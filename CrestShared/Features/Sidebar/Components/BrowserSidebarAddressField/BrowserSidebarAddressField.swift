@@ -47,6 +47,31 @@ struct BrowserSidebarAddressField<
     }
 
     private var field: some View {
+        utilityMorphField
+            .animation(handoffAnimation) {
+                $0.opacity(configuration.commandPaletteHandoff.fieldOpacity)
+            }
+            .background { commandPaletteAnchor }
+    }
+
+    @ViewBuilder
+    private var utilityMorphField: some View {
+        if configuration.morphsIntoUtilitySearch {
+            fieldContent.matchedGeometryEffect(
+                id: BrowserCommandSurfaceMorph.utilitySearch(
+                    spaceID: configuration.spaceID
+                ),
+                in: configuration.morphNamespace,
+                properties: .frame,
+                anchor: .center,
+                isSource: true
+            )
+        } else {
+            fieldContent
+        }
+    }
+
+    private var fieldContent: some View {
         BrowserSidebarAddressFieldContent(configuration: configuration) {
             leadingAccessory
         } trailingAccessory: {
@@ -59,19 +84,6 @@ struct BrowserSidebarAddressField<
             isEditing: configuration.isEditing.wrappedValue,
             branding: configuration.branding
         )
-        .matchedGeometryEffect(
-            id: BrowserCommandSurfaceMorph.utilitySearch(
-                spaceID: configuration.spaceID
-            ),
-            in: configuration.morphNamespace,
-            properties: .frame,
-            anchor: .center,
-            isSource: true
-        )
-        .animation(handoffAnimation) {
-            $0.opacity(configuration.commandPaletteHandoff.fieldOpacity)
-        }
-        .background { commandPaletteAnchor }
     }
 
     /// The field's frame, carrying the palette's identity while the field

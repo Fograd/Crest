@@ -2,8 +2,12 @@ import SwiftUI
 
 /// Supplies live appearance preferences at the scene boundary.
 struct BrowserChromeAppearancePersistence: ViewModifier {
+    // MARK: - Variables
+
     @AppStorage(BrowserChromeAppearancePreference.sidebarOnRightKey, store: BrowserChromeAppearancePreference.defaults)
     private var sidebarOnRight = false
+    @AppStorage(BrowserChromeAppearancePreference.toolbarAtTopKey, store: BrowserChromeAppearancePreference.defaults)
+    private var toolbarAtTop = BrowserLookAndFeelDefaults.toolbarAtTop
     @AppStorage(BrowserChromeAppearancePreference.borderWidthKey, store: BrowserChromeAppearancePreference.defaults)
     private var borderWidth = BrowserChromeAppearance.defaultBorderWidth
     /// The corner radius of the window this scene fills, which the page frame
@@ -11,12 +15,15 @@ struct BrowserChromeAppearancePersistence: ViewModifier {
     @State private var windowCornerRadius: CGFloat?
     @State private var isWindowFullScreen = false
 
+    // MARK: - Actions - Appearance
+
     func body(content: Content) -> some View {
         content
             .environment(
                 \.browserChromeAppearance,
                 BrowserChromeAppearance(
                     sidebarOnRight: sidebarOnRight,
+                    toolbarAtTop: toolbarAtTop,
                     borderWidth: borderWidth,
                     windowCornerRadius: isWindowFullScreen ? nil : windowCornerRadius
                 )

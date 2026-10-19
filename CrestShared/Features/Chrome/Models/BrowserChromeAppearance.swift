@@ -2,26 +2,19 @@ import SwiftUI
 
 /// App-wide chrome choices. Presentation never changes browsing ownership.
 struct BrowserChromeAppearance: Equatable {
-    var sidebarOnRight = false
-    var borderWidth: Double = defaultBorderWidth
-    /// The radius of the rounded corners of the window the page sits in. A
-    /// full-screen window has none, and only the Mac measures its window.
-    var windowCornerRadius: CGFloat?
+    // MARK: - Static Variables
 
     static let defaultBorderWidth: Double = 8
     static let borderWidthRange: ClosedRange<Double> = 0...10
 
-    init(
-        sidebarOnRight: Bool = false, borderWidth: Double = defaultBorderWidth, windowCornerRadius: CGFloat? = nil
-    ) {
-        self.sidebarOnRight = sidebarOnRight
-        self.borderWidth = borderWidth
-        self.windowCornerRadius = windowCornerRadius
-    }
+    // MARK: - Variables
 
-    init(sidebarOnRight: Bool = false, borderless: Bool) {
-        self.init(sidebarOnRight: sidebarOnRight, borderWidth: borderless ? 0 : Self.defaultBorderWidth)
-    }
+    var sidebarOnRight = false
+    var toolbarAtTop = false
+    var borderWidth: Double = defaultBorderWidth
+    /// The radius of the rounded corners of the window the page sits in. A
+    /// full-screen window has none, and only the Mac measures its window.
+    var windowCornerRadius: CGFloat?
 
     var frameWidth: CGFloat {
         CGFloat(
@@ -39,6 +32,26 @@ struct BrowserChromeAppearance: Equatable {
         guard let windowCornerRadius else { return BrowserChromeLayout.pageCornerRadius }
         return max(0, windowCornerRadius - frameWidth)
     }
+
+    // MARK: - Initializers
+
+    init(
+        sidebarOnRight: Bool = false, toolbarAtTop: Bool = false, borderWidth: Double = defaultBorderWidth,
+        windowCornerRadius: CGFloat? = nil
+    ) {
+        self.sidebarOnRight = sidebarOnRight
+        self.toolbarAtTop = toolbarAtTop
+        self.borderWidth = borderWidth
+        self.windowCornerRadius = windowCornerRadius
+    }
+
+    init(sidebarOnRight: Bool = false, toolbarAtTop: Bool = false, borderless: Bool) {
+        self.init(
+            sidebarOnRight: sidebarOnRight, toolbarAtTop: toolbarAtTop,
+            borderWidth: borderless ? 0 : Self.defaultBorderWidth)
+    }
+
+    // MARK: - Actions - Layout
 
     /// The window's corner radius, read from the container corner insets of a
     /// view that reaches the bottom of the window. The bottom corners stand for
@@ -80,10 +93,15 @@ struct BrowserChromeAppearance: Equatable {
 
 @MainActor
 enum BrowserChromeAppearancePreference {
+    // MARK: - Static Variables
+
     static let sidebarOnRightKey = "crest.appearance.sidebar-on-right"
+    static let toolbarAtTopKey = "crest.appearance.toolbar-at-top"
     static let borderWidthKey = "crest.appearance.window-border-width"
     static let borderlessKey = "crest.appearance.borderless"
     static let defaults = defaults(for: .current)
+
+    // MARK: - Actions - Persistence
 
     static func defaults(for environment: BrowserLaunchEnvironment) -> UserDefaults {
         let defaults: UserDefaults
@@ -100,6 +118,8 @@ enum BrowserChromeAppearancePreference {
 }
 
 extension BrowserChromeAppearancePreference {
+    // MARK: - Actions - Migration
+
     static func migrateBorderWidth(in defaults: UserDefaults) {
         guard defaults.object(forKey: borderWidthKey) == nil else { return }
         defaults.set(
@@ -119,5 +139,7 @@ extension BrowserChromeAppearancePreference {
 }
 
 extension EnvironmentValues {
+    // MARK: - Variables
+
     @Entry var browserChromeAppearance = BrowserChromeAppearance()
 }

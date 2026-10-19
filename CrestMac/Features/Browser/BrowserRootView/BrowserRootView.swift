@@ -137,3 +137,20 @@ private struct BrowserRootWindowTitle: ViewModifier {
     )
     .frame(width: 1_120, height: 720)
 }
+
+#Preview("Browser Root — Top Toolbar") {
+    let browser = BrowserRootPreviewFixture.makeBrowser()
+    BrowserRootView(
+        browser: browser,
+        pages: BrowserPagePool(browser: browser),
+        chrome: BrowserRootPreviewFixture.makeChrome(state: .docked),
+        transientBrowsing: BrowserTransientBrowsingCoordinator(),
+        windowState: BrowserRootPreviewFixture.makeWindowState(
+            browser: browser
+        ),
+        initialSidebarWidth: Double(BrowserChromeLayout.sidebarIdealWidth),
+        persistSidebarWidth: { _ in }
+    )
+    .environment(\.browserChromeAppearance, BrowserChromeAppearance(toolbarAtTop: true))
+    .frame(width: 1_120, height: 720)
+}

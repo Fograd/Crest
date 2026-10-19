@@ -1,0 +1,132 @@
+name: Build toolbar preview
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  PREVIEW_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+concurrency:
+  group: toolbar-preview-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    name: macOS preview
+    if: github.repository == 'Fograd/Crest'
+    runs-on: xcode-27
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.PREVIEW_SOURCE_SHA }}
+          fetch-depth: 2
+
+      - name: Check the committed patch version and release note
+        run: |
+          set -euo pipefail
+          source_sha="$(git rev-parse HEAD)"
+          restore_source() {
+            status=$?
+            trap - EXIT
+            git reset --mixed "$source_sha"
+            exit "$status"
+          }
+          trap restore_source EXIT
+          # Recreate the final commit's staging state only in this runner.
+          # A soft reset leaves its source files and index unchanged.
+          git reset --soft "$source_sha^"
+          Scripts/check-version.sh --fix-commit
+
+      - uses: ./.github/actions/prepare-apple-build
+
+      - name: Check Swift formatting
+        run: |
+          python3 - <<'PYTHON'
+          import subprocess
+          paths = subprocess.check_output(["git", "ls-files", "-z", "*.swift"]).decode().split("\0")
+          paths = [path for path in paths if path and "/Generated/" not in path]
+          subprocess.run(["xcrun", "swift-format", "lint", "--strict", "--configuration", ".swift-format", *paths], check=True)
+          PYTHON
+
+      # The native review target enables CREST_REVIEW_BUILD, which always
+      # selects its isolated profile before the application creates any state.
+      - name: Build the isolated native WebKit preview
+        run: |
+          set -euo pipefail
+          (
+            cd CrestCore
+            "$HOME/.dotnet/dotnet" publish src/CrestCore.Native \
+              -c Release -r osx-arm64 --nologo \
+              --artifacts-path "$RUNNER_TEMP/crest-toolbar-preview/core-intermediates" \
+              -o "$RUNNER_TEMP/crest-toolbar-preview/core"
+          )
+          xcodebuild build \
+            -project Crest.xcodeproj \
+            -scheme CrestNativeCore \
+            -configuration Debug \
+            -destination 'platform=macOS,arch=arm64' \
+            -derivedDataPath "$RUNNER_TEMP/crest-toolbar-preview" \
+            CREST_CORE_LIBRARY_DIR="$RUNNER_TEMP/crest-toolbar-preview/core" \
+            CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES
+
+      # This WebKit-only app is a QA candidate until every remaining gate passes.
+      # Chromium packaging still requires its stable Apple signing identity.
+      - name: Archive the WebKit preview
+        run: |
+          set -euo pipefail
+          app="$RUNNER_TEMP/crest-toolbar-preview/Build/Products/Debug/CrestNativeCore.app"
+          test -d "$app"
+          test "$(lipo -archs "$app/Contents/MacOS/CrestNativeCore")" = arm64
+          test "$(defaults read "$app/Contents/Info" CFBundleIdentifier)" = com.pauldavis.crest.native-core
+          codesign --verify --deep --strict "$app"
+          mkdir -p "$RUNNER_TEMP/crest-toolbar-artifact"
+          ditto -c -k --sequesterRsrc --keepParent \
+            "$app" \
+            "$RUNNER_TEMP/crest-toolbar-artifact/Crest-Toolbar-Preview-$PREVIEW_SOURCE_SHA.zip"
+
+      - name: Upload the exact-source preview
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: crest-toolbar-preview-${{ env.PREVIEW_SOURCE_SHA }}
+          path: ${{ runner.temp }}/crest-toolbar-artifact/*.zip
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+
+      - name: Build Chromium UI
+        run: |
+          xcodebuild build \
+            -project Crest.xcodeproj \
+            -scheme CrestChromiumUIProduct \
+            -configuration Release \
+            -destination 'generic/platform=macOS' \
+            -derivedDataPath "$RUNNER_TEMP/crest-toolbar-preview" \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Test isolated chrome preference persistence
+        env:
+          CREST_ISOLATED_SESSION: "1"
+          TEST_RUNNER_CREST_ISOLATED_SESSION: "1"
+        run: |
+          xcodebuild test \
+            -project Crest.xcodeproj \
+            -scheme Crest \
+            -configuration Debug \
+            -destination 'platform=macOS,arch=arm64' \
+            -derivedDataPath "$RUNNER_TEMP/crest-toolbar-preview" \
+            -only-testing:CrestTests/BrowserChromeLayoutTests/testChromePreferencesPersistOnlyInTheirNamedIsolationDomain \
+            CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM= CODE_SIGN_ENTITLEMENTS= CREST_MAC_ENTITLEMENTS= \
+            ENABLE_HARDENED_RUNTIME=NO
+
+      - name: Remove generated build data
+        if: always()
+        run: |
+          find "$RUNNER_TEMP/crest-toolbar-preview" -depth -delete 2>/dev/null || true
+          find "$RUNNER_TEMP/crest-toolbar-artifact" -depth -delete 2>/dev/null || true

@@ -36,6 +36,7 @@ struct BrowserSidebarAddressFieldContent<
                 summaryAccessibilityIdentifier: configuration
                     .addressDisplayAccessibilityIdentifier,
                 prompt: configuration.prompt,
+                showsFullAddress: configuration.showsFullAddress,
                 submit: configuration.submit
             )
 

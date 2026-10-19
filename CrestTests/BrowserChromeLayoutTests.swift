@@ -418,11 +418,14 @@ extension BrowserChromeLayoutTests {
                 forName: BrowserLaunchEnvironment.isolatedDefaultsSuiteName(isolationID: id))
         }
         XCTAssertFalse(defaults.bool(forKey: BrowserChromeAppearancePreference.sidebarOnRightKey))
+        XCTAssertFalse(defaults.bool(forKey: BrowserChromeAppearancePreference.toolbarAtTopKey))
         XCTAssertFalse(defaults.bool(forKey: BrowserChromeAppearancePreference.borderlessKey))
         defaults.set(true, forKey: BrowserChromeAppearancePreference.sidebarOnRightKey)
+        defaults.set(true, forKey: BrowserChromeAppearancePreference.toolbarAtTopKey)
         defaults.set(true, forKey: BrowserChromeAppearancePreference.borderlessKey)
         let restored = BrowserChromeAppearancePreference.defaults(for: environment)
         XCTAssertTrue(restored.bool(forKey: BrowserChromeAppearancePreference.sidebarOnRightKey))
+        XCTAssertTrue(restored.bool(forKey: BrowserChromeAppearancePreference.toolbarAtTopKey))
         XCTAssertTrue(restored.bool(forKey: BrowserChromeAppearancePreference.borderlessKey))
         XCTAssertFalse(restored === UserDefaults.standard)
     }

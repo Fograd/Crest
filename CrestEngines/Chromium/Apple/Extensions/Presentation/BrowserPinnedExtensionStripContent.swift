@@ -9,6 +9,7 @@ struct BrowserPinnedExtensionStripContent: View {
 
     let actions: [BrowserExtensionActionPresentation]
     let perform: (BrowserExtensionActionPresentation, BrowserExtensionPopupAnchor?) -> Void
+    var alignsTrailing = false
     var prepare: (BrowserExtensionActionPresentation) -> Void = { _ in }
     var presentMenu:
         (BrowserExtensionActionPresentation, BrowserExtensionPopupAnchor?) ->
@@ -18,6 +19,7 @@ struct BrowserPinnedExtensionStripContent: View {
         BrowserPinnedExtensionActionList(
             actions: actions,
             perform: perform,
+            alignsTrailing: alignsTrailing,
             prepare: prepare,
             presentMenu: presentMenu
         )
