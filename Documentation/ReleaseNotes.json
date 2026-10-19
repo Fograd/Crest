@@ -4225,6 +4225,10 @@
     "top-toolbar-surface-and-input": {
       "category": "improved",
       "message": "The top toolbar has even spacing, matching sidebar corners, and extension icons without a background. Click anywhere in the address bar to start editing, with its buttons still available."
+    },
+    "address-card-padding-activation": {
+      "category": "fixed",
+      "message": "Clicking the empty space around the address now activates it, while the security and site controls keep their own actions."
     }
   }
 }
