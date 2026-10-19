@@ -11,6 +11,7 @@ struct BrowserSidebarNavigationControls<TrailingAccessory: View>: View {
     private let port: BrowserSidebarNavigationPort
     private let capabilities: BrowserInteractionCapabilities
     private let hidesUnavailableForwardControl: Bool
+    private let reservesLeadingSpace: Bool
     private let trailingAccessory: TrailingAccessory
 
     /// - Parameter hidesUnavailableForwardControl: Whether the forward control
@@ -18,10 +19,14 @@ struct BrowserSidebarNavigationControls<TrailingAccessory: View>: View {
     ///   own choice rather than something its inputs decide: a strip that has
     ///   room for a permanently disabled chevron keeps it where the reader
     ///   learned it, and one that does not would rather spend the width.
+    /// - Parameter reservesLeadingSpace: Whether a sidebar strip reserves the
+    ///   remaining leading width for native window controls. A toolbar places
+    ///   those controls beside the strip and provides its own reservation.
     init(
         port: BrowserSidebarNavigationPort,
         capabilities: BrowserInteractionCapabilities,
         hidesUnavailableForwardControl: Bool = false,
+        reservesLeadingSpace: Bool = true,
         @ViewBuilder trailingAccessory: () -> TrailingAccessory = {
             EmptyView()
         }
@@ -29,6 +34,7 @@ struct BrowserSidebarNavigationControls<TrailingAccessory: View>: View {
         self.port = port
         self.capabilities = capabilities
         self.hidesUnavailableForwardControl = hidesUnavailableForwardControl
+        self.reservesLeadingSpace = reservesLeadingSpace
         self.trailingAccessory = trailingAccessory()
     }
 
@@ -53,7 +59,9 @@ struct BrowserSidebarNavigationControls<TrailingAccessory: View>: View {
 
     private var strip: some View {
         HStack(spacing: metrics.controlSpacing) {
-            Spacer(minLength: metrics.leadingSpacerMinimum)
+            if reservesLeadingSpace {
+                Spacer(minLength: metrics.leadingSpacerMinimum)
+            }
 
             BrowserSidebarNavigationHistoryControl(
                 direction: .back,

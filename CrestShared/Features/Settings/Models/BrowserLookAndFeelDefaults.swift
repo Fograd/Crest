@@ -6,8 +6,11 @@ import Foundation
 /// so a default can no longer drift between the `@AppStorage` declaration that
 /// seeds a control and the migration code that seeds the store.
 enum BrowserLookAndFeelDefaults {
+    // MARK: - Static Variables
+
     static let windowBorderWidth = BrowserChromeAppearance.defaultBorderWidth
     static let sidebarOnRight = false
+    static let toolbarAtTop = false
     static let surfaceMaterial = CrestSurfaceMaterial.standard
     static let cornerRadius: Double = 10
     static let tabScale: Double = 1
@@ -20,9 +23,11 @@ enum BrowserLookAndFeelDefaults {
     static let foldersIconOnly = false
     static let foldersTintTitle = false
 
+    // MARK: - Actions - Reset
+
     /// Puts every device-wide appearance choice this pane owns back.
     ///
-    /// Platform-only choices — window transparency, Space page motion, and the
+    /// Platform-only choices — toolbar position, Space page motion, and the
     /// app icon — belong to the shell that offers them and are reset alongside
     /// this from ``BrowserLookAndFeelResetFooter``.
     @MainActor

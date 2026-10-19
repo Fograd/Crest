@@ -49,11 +49,12 @@
         /// family that owns this window rather than against one global Space list.
         let browser: BrowserStore
         let pages: BrowserPagePool
+        var toolbarLayout = false
 
         var body: some View {
             if browser.core.state.defaultEngineSupports(.extensions) || pinnedActionPage != nil {
                 BrowserPinnedExtensionStrip(
-                    page: pinnedActionPage, space: space, browser: browser)
+                    page: pinnedActionPage, space: space, browser: browser, toolbarLayout: toolbarLayout)
             }
         }
 

@@ -14,9 +14,10 @@ struct SidebarChrome: View {
     let commandPaletteHandoff: BrowserCommandPaletteHandoff
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.browserChromeAppearance) private var appearance
 
     var body: some View {
-        if let space = selectedSpace {
+        if !appearance.toolbarAtTop, let space = selectedSpace {
             let isLocked = context.spaceAccess.isLocked(space)
 
             VStack(spacing: 0) {

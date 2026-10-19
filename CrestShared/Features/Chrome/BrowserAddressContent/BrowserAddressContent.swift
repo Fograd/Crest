@@ -10,6 +10,7 @@ struct BrowserAddressContent: View {
     var editorAccessibilityIdentifier = "address-field"
     var summaryAccessibilityIdentifier = "address-display"
     var prompt: LocalizedStringKey = "Search or enter website"
+    var showsFullAddress = false
     let submit: () -> Void
 
     @FocusState private var isFocused: Bool
@@ -107,19 +108,35 @@ struct BrowserAddressContent: View {
                 focusAndSelectAll()
             }
         } label: {
-            VStack(spacing: -1) {
-                Text(presentation.domain)
-                    .font(.callout.weight(.semibold))
+            Group {
+                if showsFullAddress {
+                    Group {
+                        if text.isEmpty {
+                            Text(prompt)
+                        } else {
+                            Text(verbatim: text)
+                        }
+                    }
+                    .font(.callout)
                     .foregroundStyle(text.isEmpty ? .secondary : .primary)
                     .lineLimit(1)
                     .truncationMode(.middle)
+                } else {
+                    VStack(spacing: -1) {
+                        Text(presentation.domain)
+                            .font(.callout.weight(.semibold))
+                            .foregroundStyle(text.isEmpty ? .secondary : .primary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
 
-                if let route = presentation.route {
-                    Text(route)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
+                        if let route = presentation.route {
+                            Text(route)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        }
+                    }
                 }
             }
             .frame(maxWidth: .infinity)

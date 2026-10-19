@@ -621,11 +621,11 @@ extension BrowserRootModel {
     }
 
     /// Which side of the field-to-palette morph holds the shared identity. The
-    /// field is on screen whenever the sidebar is, docked or floating.
-    func commandPaletteHandoff(reduceMotion: Bool) -> BrowserCommandPaletteHandoff {
+    /// field is on screen whenever the sidebar or the top toolbar carries it.
+    func commandPaletteHandoff(reduceMotion: Bool, toolbarAtTop: Bool = false) -> BrowserCommandPaletteHandoff {
         .resolve(
             isPaletteShown: isCommandPaletteShown,
-            isFieldOnScreen: sidebarPresentation.showsSidebar,
+            isFieldOnScreen: toolbarAtTop || sidebarPresentation.showsSidebar,
             animates: BrowserCommandSurfaceMorph.animatesCommandPalette(reduceMotion: reduceMotion)
         )
     }

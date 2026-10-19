@@ -28,8 +28,8 @@ struct BrowserRootShell: View, BrowserChromeAnimating {
             // fullscreen page hides: taking it down would restore the window's
             // style while AppKit is carrying it into fullscreen.
             BrowserNativeWindowControlsBridge(
-                isVisible: model.sidebarPresentation.showsWindowControls,
-                sidebarOnRight: appearance.sidebarOnRight,
+                isVisible: appearance.toolbarAtTop || model.sidebarPresentation.showsWindowControls,
+                sidebarOnRight: appearance.sidebarOnRight && !appearance.toolbarAtTop,
                 sidebarWidth: model.sidebarWidth
             )
             .frame(maxWidth: .infinity)
@@ -129,56 +129,64 @@ struct BrowserRootShell: View, BrowserChromeAnimating {
                 spaces: model.browser.availableSpaces
             )
 
-            BrowserSidebarPageLayout(
-                presentation: model.sidebarPresentation,
-                width: model.sidebarWidth,
-                edge: sidebarEdge,
-                isApproachingDock: model.isSidebarApproachingDock
-            ) {
-                BrowserSpacePageSurface(
-                    model: model, transientBrowsing: transientBrowsing,
-                    tabPromotionNamespace: tabPromotionNamespace, shortcuts: shortcuts, appearance: appearance
-                )
-                .clipped()
-            } sidebar: {
-                BrowserRootSidebarSurfaceLayer(
+            VStack(spacing: 0) {
+                if appearance.toolbarAtTop {
+                    BrowserRootTopToolbar(model: model, commandSurfaceNamespace: commandSurfaceNamespace)
+                        .allowsHitTesting(!model.chrome.isCommandPalettePresented)
+                        .accessibilityHidden(model.chrome.isCommandPalettePresented)
+                }
+
+                BrowserSidebarPageLayout(
                     presentation: model.sidebarPresentation,
                     width: model.sidebarWidth,
                     edge: sidebarEdge,
-                    space: model.browser.shownSpace,
-                    reduceTransparency: reduceTransparency,
-                    spaces: model.browser.availableSpaces,
-                    isRevealedByPointer: model.isFloatingSidebarRevealedByPointer,
-                    hoverChanged: {
-                        model.sidebarSurfaceHoverChanged(
-                            $0,
-                            reduceMotion: reduceMotion
+                    isApproachingDock: model.isSidebarApproachingDock
+                ) {
+                    BrowserSpacePageSurface(
+                        model: model, transientBrowsing: transientBrowsing,
+                        tabPromotionNamespace: tabPromotionNamespace, shortcuts: shortcuts, appearance: appearance
+                    )
+                    .clipped()
+                } sidebar: {
+                    BrowserRootSidebarSurfaceLayer(
+                        presentation: model.sidebarPresentation,
+                        width: model.sidebarWidth,
+                        edge: sidebarEdge,
+                        space: model.browser.shownSpace,
+                        reduceTransparency: reduceTransparency,
+                        spaces: model.browser.availableSpaces,
+                        isRevealedByPointer: model.isFloatingSidebarRevealedByPointer,
+                        hoverChanged: {
+                            model.sidebarSurfaceHoverChanged(
+                                $0,
+                                reduceMotion: reduceMotion
+                            )
+                        }
+                    ) {
+                        BrowserRootSidebarContent(
+                            model: model,
+                            spaceSettingsPresentation: spaceSettingsPresentation,
+                            commandSurfaceNamespace: commandSurfaceNamespace,
+                            tabPromotionNamespace: tabPromotionNamespace
                         )
                     }
-                ) {
-                    BrowserRootSidebarContent(
-                        model: model,
-                        spaceSettingsPresentation: spaceSettingsPresentation,
-                        commandSurfaceNamespace: commandSurfaceNamespace,
-                        tabPromotionNamespace: tabPromotionNamespace
-                    )
+                    .background {
+                        BrowserSidebarPointerNavigation(
+                            isSidebarVisible:
+                                model.sidebarPresentation.showsSidebar
+                                && !model.chrome.isCommandPalettePresented,
+                            perform: model.handleAuxiliaryMouseAction,
+                            navigationTargets: { [pages = model.pages] in pages.livePages },
+                            activeTarget: { [pages = model.pages] in pages.activePage }
+                        )
+                    }
+                } controls: {
+                    BrowserRootShellControls(
+                        model: model, storedSidebarWidth: $storedSidebarWidth, sidebarEdge: sidebarEdge)
                 }
-                .background {
-                    BrowserSidebarPointerNavigation(
-                        isSidebarVisible:
-                            model.sidebarPresentation.showsSidebar
-                            && !model.chrome.isCommandPalettePresented,
-                        perform: model.handleAuxiliaryMouseAction,
-                        navigationTargets: { [pages = model.pages] in pages.livePages },
-                        activeTarget: { [pages = model.pages] in pages.activePage }
-                    )
-                }
-            } controls: {
-                BrowserRootShellControls(
-                    model: model, storedSidebarWidth: $storedSidebarWidth, sidebarEdge: sidebarEdge)
+                .allowsHitTesting(!model.chrome.isCommandPalettePresented)
+                .accessibilityHidden(model.chrome.isCommandPalettePresented)
             }
-            .allowsHitTesting(!model.chrome.isCommandPalettePresented)
-            .accessibilityHidden(model.chrome.isCommandPalettePresented)
 
             BrowserRootUtilityFanLayer(model: model, sidebarOnRight: appearance.sidebarOnRight)
                 .zIndex(BrowserRootMetrics.utilityFanZIndex)

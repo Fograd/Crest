@@ -41,6 +41,7 @@ struct BrowserSidebarAddressFieldSurface: ViewModifier {
                         value: loadingProgress
                     )
             }
+            .allowsHitTesting(false)
         }
         .overlay {
             fieldShape
@@ -52,6 +53,7 @@ struct BrowserSidebarAddressFieldSurface: ViewModifier {
                         ? max(1, metrics.editingRingWidth) : metrics.editingRingWidth,
                     antialiased: true
                 )
+                .allowsHitTesting(false)
         }
     }
 

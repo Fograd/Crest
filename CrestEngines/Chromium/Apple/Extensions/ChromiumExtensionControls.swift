@@ -5,6 +5,7 @@ struct BrowserPinnedExtensionStrip: View {
     /// The Space whose row this is, in the read model.
     let space: SpaceModel
     let browser: BrowserStore
+    var toolbarLayout = false
     private var store: ChromiumExtensionStore { ChromiumComposition.extensions }
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(BrowserExtensionSidePanelHost.self) private var sidePanel: BrowserExtensionSidePanelHost?
@@ -23,6 +24,8 @@ struct BrowserPinnedExtensionStrip: View {
                 BrowserPinnedExtensionStripContent(
                     actions: actions,
                     perform: run,
+                    alignsTrailing: toolbarLayout,
+                    showsBackground: !toolbarLayout,
                     presentMenu: { action, anchor in
                         store.presentMenu(
                             action, space: space.identity, anchor: anchor,
@@ -32,9 +35,13 @@ struct BrowserPinnedExtensionStrip: View {
                             })
                     }
                 )
-                .padding(.top, BrowserSidebarMetrics.topSectionSpacing)
+                .padding(.top, toolbarLayout ? 0 : BrowserSidebarMetrics.topSectionSpacing)
                 // Pinned tabs below hold the same gap above themselves.
-                .padding(.bottom, space.sidebar.section(.pinned).isEmpty ? BrowserSidebarMetrics.topSectionSpacing : 0)
+                .padding(
+                    .bottom,
+                    !toolbarLayout && space.sidebar.section(.pinned).isEmpty
+                        ? BrowserSidebarMetrics.topSectionSpacing : 0
+                )
                 .transition(.opacity)
             }
         }

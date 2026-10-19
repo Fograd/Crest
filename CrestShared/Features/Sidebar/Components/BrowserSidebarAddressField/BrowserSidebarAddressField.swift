@@ -13,12 +13,16 @@ struct BrowserSidebarAddressField<
     TrailingAccessory: View,
     FieldContextMenu: View
 >: View {
+    // MARK: - Variables
+
     private let configuration: BrowserSidebarAddressFieldConfiguration
     private let leadingAccessory: LeadingAccessory
     private let trailingAccessory: TrailingAccessory
     private let fieldContextMenu: FieldContextMenu
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    // MARK: - Initializers
 
     init(
         configuration: BrowserSidebarAddressFieldConfiguration,
@@ -34,6 +38,8 @@ struct BrowserSidebarAddressField<
         self.fieldContextMenu = fieldContextMenu()
     }
 
+    // MARK: - Actions - Composition
+
     @ViewBuilder
     var body: some View {
         if hasFieldContextMenu {
@@ -47,6 +53,31 @@ struct BrowserSidebarAddressField<
     }
 
     private var field: some View {
+        utilityMorphField
+            .animation(handoffAnimation) {
+                $0.opacity(configuration.commandPaletteHandoff.fieldOpacity)
+            }
+            .background { commandPaletteAnchor }
+    }
+
+    @ViewBuilder
+    private var utilityMorphField: some View {
+        if configuration.morphsIntoUtilitySearch {
+            fieldContent.matchedGeometryEffect(
+                id: BrowserCommandSurfaceMorph.utilitySearch(
+                    spaceID: configuration.spaceID
+                ),
+                in: configuration.morphNamespace,
+                properties: .frame,
+                anchor: .center,
+                isSource: true
+            )
+        } else {
+            fieldContent
+        }
+    }
+
+    private var fieldContent: some View {
         BrowserSidebarAddressFieldContent(configuration: configuration) {
             leadingAccessory
         } trailingAccessory: {
@@ -59,19 +90,24 @@ struct BrowserSidebarAddressField<
             isEditing: configuration.isEditing.wrappedValue,
             branding: configuration.branding
         )
-        .matchedGeometryEffect(
-            id: BrowserCommandSurfaceMorph.utilitySearch(
-                spaceID: configuration.spaceID
-            ),
-            in: configuration.morphNamespace,
-            properties: .frame,
-            anchor: .center,
-            isSource: true
-        )
-        .animation(handoffAnimation) {
-            $0.opacity(configuration.commandPaletteHandoff.fieldOpacity)
+        .background {
+            if !configuration.isEditing.wrappedValue {
+                // The backing target catches the card padding without taking
+                // clicks from the security and site-control buttons above it.
+                Button {
+                    if let activate = configuration.activate {
+                        activate()
+                    } else {
+                        configuration.isEditing.wrappedValue = true
+                    }
+                } label: {
+                    Color.clear
+                        .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+                .accessibilityHidden(true)
+            }
         }
-        .background { commandPaletteAnchor }
     }
 
     /// The field's frame, carrying the palette's identity while the field

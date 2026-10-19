@@ -20,6 +20,9 @@ struct SpaceSidebarAddressBand: View {
     let commandPaletteHandoff: BrowserCommandPaletteHandoff
     let siteControlPresentationChanged: (Bool) -> Void
     let siteControlContextMenuPresentationChanged: (Bool) -> Void
+    var horizontalInset = BrowserSidebarMetrics.layerInset
+    var morphsIntoUtilitySearch = true
+    var showsFullAddress = false
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -41,7 +44,7 @@ struct SpaceSidebarAddressBand: View {
             SpacePagerSettlement.standardAnimation.unlessReducingMotion(reduceMotion),
             value: isAddressEditing.wrappedValue ? nil : address.wrappedValue
         )
-        .padding(.horizontal, BrowserSidebarMetrics.layerInset)
+        .padding(.horizontal, horizontalInset)
 
     }
 
@@ -61,6 +64,8 @@ struct SpaceSidebarAddressBand: View {
             morphNamespace: commandSurfaceNamespace,
             spaceID: space.id,
             commandPaletteHandoff: commandPaletteHandoff,
+            morphsIntoUtilitySearch: morphsIntoUtilitySearch,
+            showsFullAddress: showsFullAddress,
             branding: space.settings.look
         )
     }

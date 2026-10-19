@@ -9,6 +9,7 @@ struct BrowserPinnedExtensionActionList: View {
 
     let actions: [BrowserExtensionActionPresentation]
     let perform: (BrowserExtensionActionPresentation, BrowserExtensionPopupAnchor?) -> Void
+    var alignsTrailing = false
     var prepare: (BrowserExtensionActionPresentation) -> Void = { _ in }
     var presentMenu:
         (BrowserExtensionActionPresentation, BrowserExtensionPopupAnchor?) ->
@@ -31,7 +32,8 @@ struct BrowserPinnedExtensionActionList: View {
                 // centered when the viewport is laid out again.
                 .frame(
                     minWidth: proxy.size.width,
-                    minHeight: proxy.size.height
+                    minHeight: proxy.size.height,
+                    alignment: alignsTrailing ? .trailing : .center
                 )
             }
             .scrollIndicators(.hidden)

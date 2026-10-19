@@ -37,6 +37,9 @@ struct BrowserSidebarAddressFieldConfiguration {
     /// handed it to the open palette. A shell without an overlay palette
     /// leaves the field out of the hand-off.
     var commandPaletteHandoff = BrowserCommandPaletteHandoff.neither
+    /// A persistent toolbar keeps its address while the sidebar shows a utility search.
+    var morphsIntoUtilitySearch = true
+    var showsFullAddress = false
     var addressAccessibilityLabel: LocalizedStringKey = "Address and search"
     var addressAccessibilityIdentifier = "address-field"
     var addressDisplayAccessibilityIdentifier = "address-display"

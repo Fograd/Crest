@@ -43,6 +43,7 @@ struct BrowserEngineSidebarAccessory: View {
     let space: SpaceModel
     let browser: BrowserStore
     let pages: BrowserPagePool
+    var toolbarLayout = false
 
     var body: some View { EmptyView() }
 }
