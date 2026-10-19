@@ -13,12 +13,16 @@ struct BrowserSidebarAddressField<
     TrailingAccessory: View,
     FieldContextMenu: View
 >: View {
+    // MARK: - Variables
+
     private let configuration: BrowserSidebarAddressFieldConfiguration
     private let leadingAccessory: LeadingAccessory
     private let trailingAccessory: TrailingAccessory
     private let fieldContextMenu: FieldContextMenu
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    // MARK: - Initializers
 
     init(
         configuration: BrowserSidebarAddressFieldConfiguration,
@@ -33,6 +37,8 @@ struct BrowserSidebarAddressField<
         self.trailingAccessory = trailingAccessory()
         self.fieldContextMenu = fieldContextMenu()
     }
+
+    // MARK: - Actions - Composition
 
     @ViewBuilder
     var body: some View {
@@ -84,6 +90,24 @@ struct BrowserSidebarAddressField<
             isEditing: configuration.isEditing.wrappedValue,
             branding: configuration.branding
         )
+        .background {
+            if !configuration.isEditing.wrappedValue {
+                // The backing target catches the card padding without taking
+                // clicks from the security and site-control buttons above it.
+                Button {
+                    if let activate = configuration.activate {
+                        activate()
+                    } else {
+                        configuration.isEditing.wrappedValue = true
+                    }
+                } label: {
+                    Color.clear
+                        .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+                .accessibilityHidden(true)
+            }
+        }
     }
 
     /// The field's frame, carrying the palette's identity while the field

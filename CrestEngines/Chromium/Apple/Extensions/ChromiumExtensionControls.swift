@@ -25,6 +25,7 @@ struct BrowserPinnedExtensionStrip: View {
                     actions: actions,
                     perform: run,
                     alignsTrailing: toolbarLayout,
+                    showsBackground: !toolbarLayout,
                     presentMenu: { action, anchor in
                         store.presentMenu(
                             action, space: space.identity, anchor: anchor,

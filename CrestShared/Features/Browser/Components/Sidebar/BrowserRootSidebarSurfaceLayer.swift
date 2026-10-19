@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct BrowserRootSidebarSurfaceLayer<Content: View>: View {
+    // MARK: - Variables
+
     let presentation: BrowserSidebarPresentation
     let width: CGFloat
     let edge: HorizontalEdge
@@ -13,7 +15,43 @@ struct BrowserRootSidebarSurfaceLayer<Content: View>: View {
     let hoverChanged: @MainActor @Sendable (Bool) -> Void
     let content: Content
 
+    @Environment(\.browserChromeAppearance) private var appearance
     @Environment(\.layoutDirection) private var layoutDirection
+
+    private var shape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: surfaceCornerRadius, style: .continuous)
+    }
+
+    private var usesFloatingCardAppearance: Bool {
+        presentation != .docked
+    }
+
+    private var surfaceInsets: EdgeInsets {
+        guard usesFloatingCardAppearance else { return EdgeInsets() }
+        if appearance.toolbarAtTop {
+            return appearance.pageInsets(docked: false, direction: layoutDirection)
+        }
+        let inset = BrowserSidebarPresentation.floatingCardInset
+        return EdgeInsets(top: inset, leading: inset, bottom: inset, trailing: inset)
+    }
+
+    private var surfaceCornerRadius: CGFloat {
+        guard usesFloatingCardAppearance else { return 0 }
+        return appearance.toolbarAtTop
+            ? appearance.pageCornerRadius
+            : BrowserSidebarPresentation.floatingCardCornerRadius
+    }
+
+    private var surfaceRegionWidth: CGFloat {
+        width + surfaceInsets.leading + surfaceInsets.trailing
+    }
+
+    private var hiddenOffset: CGFloat {
+        guard presentation == .collapsed else { return 0 }
+        return layoutDirection.leadingOffset(edge == .leading ? -surfaceRegionWidth : surfaceRegionWidth)
+    }
+
+    // MARK: - Initializers
 
     init(
         presentation: BrowserSidebarPresentation,
@@ -37,9 +75,11 @@ struct BrowserRootSidebarSurfaceLayer<Content: View>: View {
         self.content = content()
     }
 
+    // MARK: - Actions - Composition
+
     var body: some View {
         cardSurface
-            .padding(surfaceInset)
+            .padding(surfaceInsets)
             .frame(width: surfaceRegionWidth)
             .frame(maxHeight: .infinity)
             #if os(macOS)
@@ -79,10 +119,6 @@ struct BrowserRootSidebarSurfaceLayer<Content: View>: View {
             )
     }
 
-    private var shape: RoundedRectangle {
-        RoundedRectangle(cornerRadius: surfaceCornerRadius, style: .continuous)
-    }
-
     private var cardSurface: some View {
         content
             .frame(width: width)
@@ -119,34 +155,5 @@ struct BrowserRootSidebarSurfaceLayer<Content: View>: View {
                 y: BrowserRootMetrics.floatingSidebarShadowOffset
             )
             .contentShape(.interaction, shape)
-    }
-
-    private var usesFloatingCardAppearance: Bool {
-        presentation != .docked
-    }
-
-    private var surfaceInset: CGFloat {
-        usesFloatingCardAppearance
-            ? BrowserSidebarPresentation.floatingCardInset
-            : 0
-    }
-
-    private var surfaceCornerRadius: CGFloat {
-        usesFloatingCardAppearance
-            ? BrowserSidebarPresentation.floatingCardCornerRadius
-            : 0
-    }
-
-    private var surfaceRegionWidth: CGFloat {
-        usesFloatingCardAppearance
-            ? BrowserSidebarPresentation.floatingHoverRegionWidth(
-                sidebarWidth: width
-            )
-            : width
-    }
-
-    private var hiddenOffset: CGFloat {
-        guard presentation == .collapsed else { return 0 }
-        return layoutDirection.leadingOffset(edge == .leading ? -surfaceRegionWidth : surfaceRegionWidth)
     }
 }

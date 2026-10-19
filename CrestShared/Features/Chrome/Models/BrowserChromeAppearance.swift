@@ -83,7 +83,7 @@ struct BrowserChromeAppearance: Equatable {
         guard !borderless else { return EdgeInsets() }
         let edge = sidebarEdge(in: direction)
         return EdgeInsets(
-            top: frameWidth,
+            top: toolbarAtTop ? 0 : frameWidth,
             leading: docked && edge == .leading ? 0 : frameWidth,
             bottom: frameWidth,
             trailing: docked && edge == .trailing ? 0 : frameWidth

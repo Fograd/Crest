@@ -10,6 +10,7 @@ struct BrowserPinnedExtensionStripContent: View {
     let actions: [BrowserExtensionActionPresentation]
     let perform: (BrowserExtensionActionPresentation, BrowserExtensionPopupAnchor?) -> Void
     var alignsTrailing = false
+    var showsBackground = true
     var prepare: (BrowserExtensionActionPresentation) -> Void = { _ in }
     var presentMenu:
         (BrowserExtensionActionPresentation, BrowserExtensionPopupAnchor?) ->
@@ -27,8 +28,10 @@ struct BrowserPinnedExtensionStripContent: View {
             height: actions.count > 0 ? Self.sectionHeight : 0
         )
         .background {
-            CrestSurfaceLayer(
-                shape: .rect(cornerRadius: BrowserSidebarMetrics.layerCornerRadius(), style: .continuous))
+            if showsBackground {
+                CrestSurfaceLayer(
+                    shape: .rect(cornerRadius: BrowserSidebarMetrics.layerCornerRadius(), style: .continuous))
+            }
         }
         .padding(.horizontal, BrowserSidebarMetrics.layerInset)
         .accessibilityElement(children: .contain)
